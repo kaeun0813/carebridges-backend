@@ -31,3 +31,6 @@ coverage.xml
 *.cover
 .pytest_cache/
 .coverage
+
+#testdb
+test.db
