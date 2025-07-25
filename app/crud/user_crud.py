@@ -17,11 +17,17 @@ def create_user(db: Session, user_create: UserCreate) -> User:
         name=user_create.name,
         phone=user_create.phone,
         email=user_create.email,
-        password=hashed_pw, 
+        password=hashed_pw,
         organization=user_create.organization,
-        position=user_create.position,
-        region=user_create.region
+        job_title=user_create.job_title,
+        start_date=user_create.start_date,
+        experience=user_create.experience,
+        region=user_create.region,
+        ai_data_consent=user_create.ai_data_consent,
+        marketing_consent_status=user_create.marketing_consent_status,
+        marketing_consent_channel=user_create.marketing_consent_channel
     )
+
 
     # DB 저장
     db.add(user)

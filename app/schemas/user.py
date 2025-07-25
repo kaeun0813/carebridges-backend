@@ -1,17 +1,21 @@
 from pydantic import BaseModel, EmailStr, field_validator, FieldValidationInfo
-from typing import Optional
-from datetime import datetime
+from typing import Optional, Literal
+from datetime import datetime, date
 
-# 요청 시: 회원가입 입력값
 class UserCreate(BaseModel):
     email: EmailStr
     phone: str
     password1: str
     password2: str
     name: str
-    organization: Optional[str] = None
-    position: Optional[str] = None
+    organization: str
+    job_title: str
+    start_date: date
+    experience: int
     region: Optional[str] = None
+    ai_data_consent: Optional[str] = "No"
+    marketing_consent_status: Optional[str] = "No"
+    marketing_consent_channel: Optional[str] = None
 
     @field_validator('name', 'password1', 'password2', 'email')
     def not_empty(cls, v: str) -> str:
@@ -26,17 +30,21 @@ class UserCreate(BaseModel):
         return v
 
 
-# 응답 시: 유저 정보 반환
 class UserOut(BaseModel):
     worker_id: int
     name: str
     phone: str
-    email: Optional[str] = None
-    organization: Optional[str] = None
-    position: Optional[str] = None
+    email: str
+    organization: str
+    job_title: str
+    start_date: date
+    experience: int
     region: Optional[str] = None
+    ai_data_consent: Optional[str] = "No"
+    marketing_consent_status: Optional[str] = "No"
+    marketing_consent_channel: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
     class Config:
-        from_attributes = True  # SQLAlchemy 모델 ↔ Pydantic 호환 설정
+        from_attributes = True
