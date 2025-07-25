@@ -31,5 +31,11 @@ def read_current_user(current_user: User = Depends(get_current_user)):
         "email": current_user.email,
         "name": current_user.name,
         "organization": current_user.organization,
-        "region": current_user.region
+        "region": current_user.region,
+        "job_title": current_user.job_title,
+        "start_date": current_user.start_date,
+        "experience": current_user.experience,
+        "ai_data_consent": current_user.ai_data_consent,
+        "marketing_consent_status": current_user.marketing_consent_status,
+        "marketing_consent_channel": current_user.marketing_consent_channel
     }
