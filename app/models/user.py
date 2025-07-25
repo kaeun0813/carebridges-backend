@@ -7,7 +7,7 @@ class User(Base):
 
     worker_id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(50), nullable=False)
-    phone = Column(String(20), unique=True, nullable=False)
+    phone = Column(String(20), nullable=False)
     email = Column(String(100), unique=True)
     password = Column(String(255), nullable=False)
     organization = Column(String(100))
