@@ -13,9 +13,9 @@ class UserCreate(BaseModel):
     start_date: date
     experience: int
     region: Optional[str] = None
-    ai_data_consent: Optional[str] = "No"
-    marketing_consent_status: Optional[str] = "No"
-    marketing_consent_channel: Optional[str] = None
+    ai_data_consent: Optional[Literal["Yes", "No"]] = "No"
+    marketing_consent_status: Optional[Literal["Yes", "No"]] = "No"
+    marketing_consent_channel: Optional[str] = None  # 예: "SMS,Email"
 
     @field_validator('name', 'password1', 'password2', 'email')
     def not_empty(cls, v: str) -> str:
