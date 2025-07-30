@@ -1,48 +1,29 @@
 from pydantic import BaseModel, EmailStr, field_validator, FieldValidationInfo
-from typing import Optional, Literal
-from datetime import datetime, date
+from typing import Optional
+from datetime import datetime
 
-class UserCreate(BaseModel):
+class SimpleUserCreate(BaseModel):
     email: EmailStr
-    phone: str
+    name: str
     password1: str
     password2: str
-    name: str
-    organization: str
-    job_title: str
-    start_date: date
-    experience: int
-    region: Optional[str] = None
-    ai_data_consent: Optional[Literal["Yes", "No"]] = "No"
-    marketing_consent_status: Optional[Literal["Yes", "No"]] = "No"
-    marketing_consent_channel: Optional[str] = None  # 예: "SMS,Email"
 
-    @field_validator('name', 'password1', 'password2', 'email')
+    @field_validator("email", "name", "password1", "password2")
     def not_empty(cls, v: str) -> str:
-        if not v or not v.strip():
-            raise ValueError('빈 값은 허용되지 않습니다.')
+        if not v.strip():
+            raise ValueError("빈 값은 허용되지 않습니다.")
         return v
 
-    @field_validator('password2')
+    @field_validator("password2")
     def passwords_match(cls, v: str, info: FieldValidationInfo) -> str:
-        if 'password1' in info.data and v != info.data['password1']:
-            raise ValueError('비밀번호가 일치하지 않습니다.')
+        if v != info.data.get("password1"):
+            raise ValueError("비밀번호가 일치하지 않습니다.")
         return v
-
 
 class UserOut(BaseModel):
     worker_id: int
-    name: str
-    phone: str
     email: str
-    organization: str
-    job_title: str
-    start_date: date
-    experience: int
-    region: Optional[str] = None
-    ai_data_consent: Optional[str] = "No"
-    marketing_consent_status: Optional[str] = "No"
-    marketing_consent_channel: Optional[str] = None
+    name: str
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
