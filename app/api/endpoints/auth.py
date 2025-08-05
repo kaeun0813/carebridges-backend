@@ -93,3 +93,12 @@ def refresh_token_endpoint(
         path="/auth/refresh"
     )
     return response
+
+@router.post("/logout")
+def logout():
+    response = JSONResponse(content={"message": "로그아웃 되었습니다."})
+    response.delete_cookie(
+        key="refresh_token",
+        path="/auth/refresh"  
+    )
+    return response
