@@ -95,10 +95,18 @@ def refresh_token_endpoint(
     return response
 
 @router.post("/logout")
-def logout():
+def logout(request: Request):
+    refresh_token = request.cookies.get("refresh_token")
+
+    if not refresh_token:
+        raise HTTPException(
+            status_code=400,
+            detail="로그인 상태가 아닙니다. (Refresh Token 없음)"
+        )
+
     response = JSONResponse(content={"message": "로그아웃 되었습니다."})
     response.delete_cookie(
         key="refresh_token",
-        path="/auth/refresh"  
+        path="/auth/refresh"
     )
     return response
