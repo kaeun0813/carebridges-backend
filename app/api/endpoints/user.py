@@ -10,28 +10,20 @@ router = APIRouter()
 
 @router.post("/register", response_model=UserOut, status_code=201)
 def register_user(user_create: SimpleUserCreate, db: Session = Depends(get_db)):
-
-    #  이메일 중복 검사
-    existing_user = get_user_by_email(db, user_create.email)
-    if existing_user:
+    # 이메일 중복 검사 (비즈니스 로직)
+    if get_user_by_email(db, user_create.email):
+        # 중복은 409 추천 (콘플릭트)
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="이미 등록된 이메일입니다."
-        )
-    #  필수 필드 누락 검사
-    if not user_create.email or not user_create.name or not user_create.password:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="필수 입력 항목(이메일, 이름, 비밀번호)을 모두 입력해주세요."
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "message": "이미 등록된 이메일입니다.",
+                "errors": [
+                    {"field": "email", "message": "이미 등록된 이메일입니다.", "code": "duplicate"}
+                ],
+            },
         )
 
-    #  이메일 형식 검증 (간단한 예시)
-    if "@" not in user_create.email:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="올바른 이메일 형식이 아닙니다."
-        )
-    
+    # 여기까지 오면 Pydantic이 name/비밀번호 검증을 이미 끝낸 상태
     return create_simple_user(db, user_create)
 
 

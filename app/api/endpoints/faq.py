@@ -64,7 +64,12 @@ def get_question_detail(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    question = faq_crud.get_question_by_id(db, question_id)
-    if not question:
-        raise HTTPException(status_code=404, detail="질문을 찾을 수 없습니다.")
-    return question
+    try:
+        question = faq_crud.get_question_by_id(db, question_id)
+        if not question:
+            raise HTTPException(status_code=404, detail="질문을 찾을 수 없습니다.")
+        return question
+    except HTTPException:
+        raise
+    except SQLAlchemyError:
+        raise HTTPException(status_code=500, detail="질문 상세 조회 중 서버 오류가 발생했습니다.")
