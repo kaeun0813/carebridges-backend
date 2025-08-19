@@ -1,54 +1,127 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List
 from app.db.session import get_db
+from app.schemas.chat import (
+    ConversationCreate,
+    MessageCreate,
+    MessageOut,
+    ConversationOut,
+    ConversationWithMessages,
+    MessageWithAIRequest,
+    MessageWithAIResponse,
+)
+from app.crud import chat_crud
 from app.api.deps import get_current_user
 from app.models.user import User
-from app.schemas.chat import ChatCreate, ChatOut, ChatInput, ChatResponse
-from app.crud import chat_crud  # CRUD 모듈 사용
-from fastapi import Query
-
+from app.services.chat_ai import call_ai_server
 
 router = APIRouter()
 
-# POST /chat/logs - 대화 저장
-@router.post("/logs", response_model=ChatOut, status_code=201)
-def create_chat_log(
-    chat_create: ChatCreate,
+# 1) 대화 생성
+@router.post("/conversations", response_model=ConversationOut)
+def create_conversation(
+    payload: ConversationCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
-    return chat_crud.create_chat_log(db, chat_create, current_user.worker_id)
+    conversation = chat_crud.create_conversation(
+        db=db,
+        worker_id=current_user.worker_id,   # ✅ id → worker_id
+        conversation_in=payload,
+    )
+    return conversation
 
-
-# GET /chat/logs - 전체 대화 조회
-@router.get("/logs", response_model=List[ChatOut])
-def get_chat_logs(
+# 2) 메시지 추가
+@router.post("/messages", response_model=MessageOut)
+def add_message(
+    payload: MessageCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
-    return chat_crud.get_chat_logs_by_user(db, current_user.worker_id)
+    # 소유한 conversation인지 확인
+    is_owner = chat_crud.get_conversation_owner_check(
+        db=db,
+        conversation_id=payload.conversation_id,
+        worker_id=current_user.worker_id,     # ✅ 가능하면 CRUD도 worker_id로 통일 권장
+    )
+    if not is_owner:
+        raise HTTPException(status_code=403, detail="해당 대화에 접근할 수 없습니다.")
 
-# POST /chat/ask - 사용자 질문 → 챗봇 응답 → 저장
-@router.post("/ask", response_model=ChatResponse)
-def ask_chatbot(
-    chat_input: ChatInput,
+    message = chat_crud.add_message(
+        db=db,
+        worker_id=current_user.worker_id,   # ✅ id → worker_id
+        message_in=payload,
+    )
+    return message
+
+# 3) 사용자별 대화 목록 조회
+@router.get("/conversations", response_model=list[ConversationOut])
+def get_my_conversations(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
-    user_msg = chat_input.user_message
-    dummy_bot_response = "테스트 응답입니다."  # GPT 연동 예정
+    return chat_crud.get_conversations_by_worker(
+        db=db, worker_id=current_user.worker_id
+    )
 
-    chat_crud.save_chat(db, current_user.worker_id, user_msg, "user")
-    chat_crud.save_chat(db, current_user.worker_id, dummy_bot_response, "bot")
-
-    return ChatResponse(bot_message=dummy_bot_response)
-
-#GET /chat/logs/recent - 최근 대화 n개 조회
-@router.get("/logs/recent", response_model=List[ChatOut])
-def get_recent_chats(
-    limit: int = Query(10, ge=1, le=50),
+# 4) 특정 대화 상세 조회 (메시지 포함)
+@router.get("/conversations/{conversation_id}", response_model=ConversationWithMessages)
+def get_conversation_detail(
+    conversation_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
-    return chat_crud.get_recent_chat_logs(db, current_user.worker_id, limit)
+    conversation = chat_crud.get_conversation_with_messages(
+        db=db, worker_id=current_user.worker_id, conversation_id=conversation_id
+    )
+    return conversation
+
+# 5) 사용자 메시지 + AI 응답 처리
+@router.post("/messages/with-ai", response_model=MessageWithAIResponse)
+async def handle_chat_with_ai(
+    payload: MessageWithAIRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    is_owner = chat_crud.get_conversation_owner_check(
+        db=db,
+        conversation_id=payload.conversation_id,
+        worker_id=current_user.worker_id,      # ✅ 가능하면 CRUD도 worker_id로 통일 권장
+    )
+    if not is_owner:
+        raise HTTPException(status_code=403, detail="해당 대화에 접근할 수 없습니다.")
+
+    user_message = chat_crud.add_message(
+        db=db,
+        worker_id=current_user.worker_id,    # ✅ id → worker_id
+        message_in=payload,
+    )
+
+    try:
+        ai_result = await call_ai_server(question=payload.content, top_k=payload.top_k)
+        ai_answer = ai_result["answer"]
+        ai_sources = ai_result.get("sources", [])
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"AI 서버 호출 실패: {str(e)}")
+
+    assistant_message = chat_crud.create_assistant_message_with_sources(
+        db=db,
+        worker_id=current_user.worker_id,    # ✅ id → worker_id
+        conversation_id=payload.conversation_id,
+        content=ai_answer,
+        sources=[
+            {
+                "source_title": src.get("metadata", {}).get("source"),
+                "source_url": None,
+                "snippet": src.get("text"),
+                "score": src.get("score"),
+            }
+            for src in ai_sources
+        ],
+    )
+
+    return MessageWithAIResponse(
+        message_id=assistant_message.message_id,
+        content=assistant_message.content,
+        sources=ai_sources,
+    )
