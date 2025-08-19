@@ -1,29 +1,93 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from typing import Optional, List
 from datetime import datetime
-from typing import Literal
+from enum import Enum
 
 
-# 클라이언트 → 서버: 채팅 생성 요청
-class ChatCreate(BaseModel):
-    message: str
-    sender: Literal["user", "bot"]
+# 발신자 구분
+class SenderEnum(str, Enum):
+    user = "user"
+    assistant = "assistant"
 
 
-# 서버 → 클라이언트: 채팅 응답
-class ChatOut(BaseModel):
-    chat_id: int
-    worker_id: int
-    message: str
-    sender: Literal["user", "bot"]
-    created_at: datetime
+# 메시지 상태
+class MessageStatus(str, Enum):
+    saved = "saved"
+    completed = "completed"
+    failed = "failed"
+
+
+# RAG 출처 정보
+class MessageSourceOut(BaseModel):
+    source_title: Optional[str]
+    source_url: Optional[str]
+    snippet: Optional[str]
+    score: Optional[float]
+    created_at: Optional[datetime]
 
     class Config:
-        from_attributes = True  # SQLAlchemy 모델을 Pydantic 응답으로 자동 변환
+        from_attributes = True
 
 
-#요청
-class ChatInput(BaseModel):
-    user_message: str
-#응답
-class ChatResponse(BaseModel):
-    bot_message: str
+# 메시지 응답용 스키마
+class MessageOut(BaseModel):
+    message_id: int
+    conversation_id: int
+    worker_id: int
+    sender: SenderEnum
+    content: str
+    status: MessageStatus
+    token_usage: int
+    latency_ms: int
+    created_at: datetime
+    updated_at: datetime
+    sources: Optional[List[MessageSourceOut]] = []
+
+    class Config:
+        from_attributes = True
+
+
+# 메시지 생성 요청용
+class MessageCreate(BaseModel):
+    conversation_id: int
+    sender: SenderEnum
+    content: str
+
+
+# 대화 생성 요청용
+class ConversationCreate(BaseModel):
+    title: Optional[str] = None
+
+
+# 대화 응답용
+class ConversationOut(BaseModel):
+    conversation_id: int
+    worker_id: int
+    title: Optional[str]
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+# 단일 대화 + 메시지 전체 조회
+class ConversationWithMessages(BaseModel):
+    conversation_id: int
+    worker_id: int
+    title: Optional[str]
+    created_at: datetime
+    updated_at: datetime
+    messages: List[MessageOut]
+
+    class Config:
+        from_attributes = True
+
+
+class MessageWithAIRequest(MessageCreate):
+    top_k: int = 3
+
+class MessageWithAIResponse(BaseModel):
+    message_id: int
+    content: str
+    sources: list[dict]  # 추후 SourceResponse 스키마로 정리 가능

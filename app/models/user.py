@@ -22,4 +22,9 @@ class User(Base):
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
-    chats = relationship("ChatLog", back_populates="worker", cascade="all, delete", passive_deletes=True)
+    conversations = relationship(
+        "Conversation",                   # 연결할 대상 클래스 이름 (문자열로)
+        back_populates="worker",          # Conversation 쪽의 관계 이름과 매칭
+        cascade="all, delete",            # 사용자 삭제 시 대화도 함께 삭제
+        passive_deletes=True              # DB 수준의 ON DELETE 적용
+    )
