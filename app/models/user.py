@@ -1,18 +1,24 @@
-from sqlalchemy import Column, Integer, String, DateTime, func
+from sqlalchemy import Column, Integer, String, DateTime, Enum, Date, func
 from app.db.base import Base
 from sqlalchemy.orm import relationship
 
 class User(Base):
-    __tablename__ = "social_workers"  #mysql 실제 테이블명
+    __tablename__ = "social_workers"
 
     worker_id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(50), nullable=False)
-    phone = Column(String(20), unique=True, nullable=False)
-    email = Column(String(100), unique=True)
+    phone = Column(String(20), nullable=True)  
+    email = Column(String(100), unique=True, nullable=False)
     password = Column(String(255), nullable=False)
-    organization = Column(String(100))
-    position = Column(String(50))
-    region = Column(String(100))
+    organization = Column(String(100), nullable=True)
+    job_title = Column(String(50), nullable=True)  
+    start_date = Column(Date, nullable=True)       
+    experience = Column(Integer, nullable=True)    
+    region = Column(String(100), nullable=True)
+    ai_data_consent = Column(Enum('Yes', 'No'), default='No')
+    marketing_consent_status = Column(Enum('Yes', 'No'), default='No')
+    marketing_consent_channel = Column(String(20), nullable=True)  # SET 처리 문자열
+
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 

@@ -1,6 +1,18 @@
 #!/bin/bash
 
-# 애플리케이션 중지 명령어
 echo "Stopping the FastAPI application using systemd..."
-sudo systemctl stop carebridges  # carebridges.service 중지
+sudo systemctl stop carebridges.service
+
+# 5초 후 상태 확인
+sleep 5
+
+if systemctl is-active --quiet carebridges.service; then
+    echo "Service did not stop cleanly. Forcing shutdown..."
+    pid=$(pgrep gunicorn)
+    if [ -n "$pid" ]; then
+        sudo kill -9 $pid
+        echo "Gunicorn process forcefully killed."
+    fi
+fi
+
 echo "FastAPI application stopped."
