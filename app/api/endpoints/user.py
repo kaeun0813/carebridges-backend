@@ -23,7 +23,7 @@ def register_user(user_create: SimpleUserCreate, db: Session = Depends(get_db)):
             },
         )
 
-    # 여기까지 오면 Pydantic이 name/비밀번호 검증을 이미 끝낸 상태
+    # 여기까지 오면 Pydantic이 name/비밀번호/전화번호 검증을 이미 끝낸 상태
     return create_simple_user(db, user_create)
 
 
@@ -32,4 +32,5 @@ def read_current_user(current_user: User = Depends(get_current_user)):
     return {
         "email": current_user.email,
         "name": current_user.name,
+        "phone": current_user.phone,
     }
