@@ -12,6 +12,7 @@ def create_simple_user(db: Session, user_create: SimpleUserCreate) -> User:
         email=user_create.email,
         name=user_create.name,
         password=hashed_pw,
+        phone=user_create.phone,
     )
     db.add(user)
     db.commit()
