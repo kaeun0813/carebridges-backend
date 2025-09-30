@@ -10,6 +10,8 @@ from app.schemas.token import Token
 from app.models.user import User
 from datetime import timedelta
 from app.core.config import settings
+from app.schemas.auth import FindEmailRequest, FindEmailResponse 
+from app.crud.user_crud import get_user_by_name_phone 
 
 router = APIRouter()
 
@@ -110,3 +112,13 @@ def logout(request: Request):
         path="/auth/refresh"
     )
     return response
+
+@router.post("/find-email", response_model=FindEmailResponse, status_code=status.HTTP_200_OK)
+def find_email(payload: FindEmailRequest, db: Session = Depends(get_db)):
+    user = get_user_by_name_phone(db, payload.name, payload.phone)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"message": "일치하는 회원을 찾을 수 없습니다."}
+        )
+    return FindEmailResponse(email=user.email)  # 전체 이메일 반환

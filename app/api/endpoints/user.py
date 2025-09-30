@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.schemas.user import SimpleUserCreate, UserOut
-from app.crud.user_crud import get_user_by_email, create_simple_user
+from app.crud.user_crud import get_user_by_email, get_user_by_phone, create_simple_user
 from app.db.session import get_db
 from app.models.user import User
 from app.api.deps import get_current_user
@@ -20,6 +20,15 @@ def register_user(user_create: SimpleUserCreate, db: Session = Depends(get_db)):
                 "errors": [
                     {"field": "email", "message": "이미 등록된 이메일입니다.", "code": "duplicate"}
                 ],
+            },
+        )
+    # 전화번호 중복 검사
+    if get_user_by_phone(db, user_create.phone):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "message": "이미 등록된 전화번호입니다.",
+                "errors": [{"field": "phone", "message": "이미 등록된 전화번호입니다.", "code": "duplicate"}],
             },
         )
 
