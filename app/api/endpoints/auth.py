@@ -12,6 +12,7 @@ from app.crud.user_crud import (
     create_password_reset_token,
     verify_and_consume_reset_token,
     update_user_password,
+    get_user_by_name_email,
 )
 from app.utils.security import verify_password
 from app.utils.jwt import create_access_token, create_refresh_token, verify_refresh_token
@@ -157,10 +158,12 @@ def find_email(payload: FindEmailRequest, db: Session = Depends(get_db)):
     return FindEmailResponse(email=user.email)
 
 
-# 비밀번호 재설정 1단계
+# ----------------------------------------
+# 비밀번호 재설정 1단계: 이름 + 이메일 확인 후 메일 발송
+# ----------------------------------------
 @router.post("/forgot-password", response_model=ForgotPasswordResponse, status_code=status.HTTP_200_OK)
 def forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(get_db)):
-    user = get_user_by_email(db, payload.email)
+    user = get_user_by_name_email(db, payload.name.strip(), payload.email)
 
     token_for_dev = None
     if user:
@@ -176,13 +179,13 @@ def forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(get_db
 
         try:
             send_email_html(to_email=user.email, subject=settings.MAIL_SUBJECT_RESET, body_html=body)
-            logger.info("비밀번호 재설정 메일 발송 성공: %s", user.email)
+            logger.info("비밀번호 재설정 메일 발송 성공: %s", user.email,user.name)
         except Exception as e:
             logger.exception("비밀번호 재설정 메일 발송 실패: %s", e)
 
         if settings.DEBUG:
             token_for_dev = raw_token
-            logger.info("[DEV] reset token for %s: %s", user.email, raw_token)
+            logger.info("[DEV] reset token for %s: %s", user.email, user.name, raw_token)
 
     return ForgotPasswordResponse(
         message="비밀번호 재설정 안내를(계정이 존재한다면) 전송했습니다.",
