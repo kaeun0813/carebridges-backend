@@ -1,7 +1,15 @@
 from pydantic import BaseModel, EmailStr, field_validator, FieldValidationInfo
 
 class ForgotPasswordRequest(BaseModel):
+    name:str
     email: EmailStr
+    
+    @field_validator("name", mode="after")  # [ADDED]
+    @classmethod
+    def non_empty_name(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("이름은 비어 있을 수 없습니다.")
+        return v
 
 class ForgotPasswordResponse(BaseModel):
     message: str  # 운영에서는 토큰/개발정보 없음
