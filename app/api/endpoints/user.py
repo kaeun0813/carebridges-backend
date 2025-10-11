@@ -42,4 +42,5 @@ def read_current_user(current_user: User = Depends(get_current_user)):
         "email": current_user.email,
         "name": current_user.name,
         "phone": current_user.phone,
+        "organization": current_user.organization,
     }
