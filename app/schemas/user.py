@@ -12,9 +12,10 @@ class SimpleUserCreate(BaseModel):
     password1: str
     password2: str
     phone: str
+    organization:str
 
     # 공통 빈값 방지
-    @field_validator("email", "name", "password1", "password2", "phone", mode="after")
+    @field_validator("email", "name", "password1", "password2", "phone","organization", mode="after")
     @classmethod
     def not_empty(cls, v: str) -> str:
         if not v or not v.strip():
@@ -44,6 +45,7 @@ class UserOut(BaseModel):
     email: str
     name: str
     phone: str
+    organization:str
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 

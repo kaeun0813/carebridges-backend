@@ -10,7 +10,7 @@ class User(Base):
     phone = Column(String(20), nullable=False, unique=True)  
     email = Column(String(100), unique=True, nullable=False)
     password = Column(String(255), nullable=False)
-    organization = Column(String(100), nullable=True)
+    organization = Column(String(100), nullable=False)
     job_title = Column(String(50), nullable=True)  
     start_date = Column(Date, nullable=True)       
     experience = Column(Integer, nullable=True)    
